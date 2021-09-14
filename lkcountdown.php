@@ -221,7 +221,33 @@ class Lkcountdown extends Module
         }
 
         if($controller != 'module-lkcountdown-countdown') {
-            Tools::redirect(Context::getContext()->link->getModuleLink($this->name, 'countdown'));
+            $this->sslRedirection();
+        }
+    }
+
+    /**
+     * Redirects to correct protocol if settings and request methods don't match.
+     */
+    protected function sslRedirection()
+    {
+        // Don't send any cookie
+        Context::getContext()->cookie->disallowWriting();
+
+        $redirect_type = Configuration::get('PS_CANONICAL_REDIRECT') == 2 ? '301' : '302';
+        header('HTTP/1.0 ' . $redirect_type . ' Moved');
+        header('Cache-Control: no-cache');
+
+        // If we call a SSL controller without SSL or a non SSL controller with SSL, we redirect with the right protocol
+        if (Configuration::get('PS_SSL_ENABLED') && $_SERVER['REQUEST_METHOD'] != 'POST' && $this->ssl != Tools::usingSecureMode()) {
+            if ($this->ssl) {
+                header('Location: ' . Tools::getShopDomainSsl(true) . Tools::redirect(Context::getContext()->link->getModuleLink($this->name, 'countdown')));
+            } else {
+                header('Location: ' . Tools::getShopDomain(true) .    Tools::redirect(Context::getContext()->link->getModuleLink($this->name, 'countdown')));
+            }
+            exit();
+        } else {
+            header('Location: ' . Tools::getShopDomain(true) .    Tools::redirect(Context::getContext()->link->getModuleLink($this->name, 'countdown')));
+            exit();
         }
     }
 }
